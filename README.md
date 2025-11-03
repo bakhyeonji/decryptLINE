@@ -24,11 +24,21 @@ pip install pycryptodome
 
 ## Quick Start
 ```bash
-python decrypt_line_sqlite.py --edb "D:\path\to\encrypted.edb" --result "D:\path\to\decrypted.db" --passphrase "c3c36ce1151757f24f95ce3b42258472"
+python decrypt_line_sqlite.py --edb "D:\path\to\encrypted.edb" --result "D:\path\to\decrypted.db" --dump "D:\path\to\memdump.mem"
 ```
 ---
 
 ## How It Works (Summary)
+- **Passphrase discovery (find_passphrase.py)**
+  - Scans a binary memory dump (streamed in chunks) for patterns that commonly appear in decoded text forms:
+    ```bash
+    "encryptionKey":"<32hex>mse"
+    encryptionKey=<32hex>mse
+    "encryptionKey=<32hex>mse"
+    ```
+  - Supports both ASCII/UTF-8 and UTF-16LE (Windows process memory) encodings.
+  - Extracts exactly the 32-character hexadecimal string and returns the first candidate found as the passphrase.
+
 - **Base key derivation (`derive_encryption_key`)**
   - `pad_password(key_str)` pads to 32 bytes (missing bytes filled with **PDF Standard Padding** constants)
   - `owner_pad = pad_password("")`

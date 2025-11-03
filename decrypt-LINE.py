@@ -4,7 +4,7 @@ import argparse
 import struct
 from Crypto.Cipher import AES
 from Crypto.Hash import MD5
-
+from find_passphrase import find_passphrase_from_mem
 
 __author__ = 'Hyeonji Park'
 __email__ = 'agria200@korea.ac.kr'
@@ -105,8 +105,8 @@ def decrypt_page_aes128(base_key: bytes, page: int, data: bytes) -> bytes:
     # print(f"[DEBUG] page {page} iv : {iv.hex()}")
 
     if page == 1:
-        print(f"[DEBUG] page {page} key: {pagekey.hex()}")
-        print(f"[DEBUG] page {page} iv : {iv.hex()}")
+        # print(f"[DEBUG] page {page} key: {pagekey.hex()}")
+        # print(f"[DEBUG] page {page} iv : {iv.hex()}")
         orig_hdr = buf[16:24]
         dbPageSize = (orig_hdr[0] << 8) | orig_hdr[1]
         ok_size = (512 <= dbPageSize <= 65536) and (((dbPageSize - 1) & dbPageSize) == 0)
@@ -123,6 +123,7 @@ def decrypt_page_aes128(base_key: bytes, page: int, data: bytes) -> bytes:
     return bytes(buf)
 
 def decrypt_sqlite_file(encrypted_path: str, decrypted_path: str, key_str: str):
+    
     with open(encrypted_path, 'rb') as f:
         data = f.read()
 
@@ -144,16 +145,20 @@ def decrypt_sqlite_file(encrypted_path: str, decrypted_path: str, key_str: str):
             fout.write(decrypt_page_aes128(base_key, page, chunk))
             page += 1
 
+
 def main():
 
     ap = argparse.ArgumentParser(description="Decrypt LINE Database")
     ap.add_argument("--edb", required=True, help="encrypted LINE edb path")
-    ap.add_argument("--passphrase", required=True, help="user passphrase")
-    ap.add_argument("--result", require=True, help="decrypted LINE db path")
+    ap.add_argument("--result", required=True, help="decrypted LINE db path")
+    ap.add_argument("--dump", required=True, help="momory dump file path")
 
-    decrypt_sqlite_file(ap.edb, ap.result, ap.passphrase)
+    args = ap.parse_args()
 
-    return output
+    passphrase = find_passphrase_from_mem(args.dump)
+    decrypt_sqlite_file(args.edb, args.result, passphrase)
+
+    return args.result
 
 
 if __name__ == "__main__":
